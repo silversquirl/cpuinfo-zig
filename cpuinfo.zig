@@ -17,7 +17,12 @@ const CpuInfo = struct {
     pub fn format(self: CpuInfo, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         _ = fmt;
         _ = options;
-        try writer.print("{s}, {d}MHz, {d} threads", .{ self.name, self.max_mhz, self.count });
+        try writer.print("{s} ({} threads; ", .{ cpu_info.name, cpu_info.count });
+        if (cpu_info.max_mhz >= 1000) {
+            try writer.print("{d}GHz)", .{@intToFloat(f64, cpu_info.max_mhz) * 0.001});
+        } else {
+            try writer.print("{d}MHz)", .{cpu_info.max_mhz});
+        }
     }
 };
 
