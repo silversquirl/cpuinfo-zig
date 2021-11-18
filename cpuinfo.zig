@@ -17,11 +17,11 @@ const CpuInfo = struct {
     pub fn format(self: CpuInfo, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         _ = fmt;
         _ = options;
-        try writer.print("{s} ({} threads; ", .{ cpu_info.name, cpu_info.count });
-        if (cpu_info.max_mhz >= 1000) {
-            try writer.print("{d}GHz)", .{@intToFloat(f64, cpu_info.max_mhz) * 0.001});
+        try writer.print("{s} ({} threads; ", .{ self.name, self.count });
+        if (self.max_mhz >= 1000) {
+            try writer.print("{d}GHz)", .{@intToFloat(f64, self.max_mhz) * 0.001});
         } else {
-            try writer.print("{d}MHz)", .{cpu_info.max_mhz});
+            try writer.print("{d}MHz)", .{self.max_mhz});
         }
     }
 };
@@ -219,9 +219,12 @@ const HKEY_DYN_DATA = 0x80000006;
 const HKEY_CURRENT_USER_LOCAL_SETTINGS = 0x80000007;
 
 test {
-    const info = try CpuInfo.get(std.testing.allocator);
+    const info = try get(std.testing.allocator);
     defer info.deinit(std.testing.allocator);
     try std.testing.expect(info.name.len > 0);
     try std.testing.expect(info.count > 0);
     try std.testing.expect(info.max_mhz > 0);
+
+    var buf: [512]u8 = undefined;
+    _ = try std.fmt.bufPrint(&buf, "{}", .{info});
 }
