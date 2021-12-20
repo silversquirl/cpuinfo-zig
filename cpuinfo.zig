@@ -203,7 +203,7 @@ extern fn RegGetValueW(
     value: ?[*:0]u16,
     flags: win32.DWORD,
     type: ?*win32.DWORD,
-    data: ?*c_void,
+    data: ?*anyopaque,
     data_len: ?*win32.DWORD,
 ) win32.LSTATUS;
 
