@@ -10,7 +10,7 @@ const CpuInfo = struct {
     count: usize,
     max_mhz: u64,
 
-    pub fn deinit(self: CpuInfo, allocator: *std.mem.Allocator) void {
+    pub fn deinit(self: CpuInfo, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
     }
 
@@ -32,7 +32,7 @@ pub const get = switch (builtin.os.tag) {
     else => @compileError("Unsupported OS"),
 };
 
-fn getLinux(allocator: *std.mem.Allocator) !CpuInfo {
+fn getLinux(allocator: std.mem.Allocator) !CpuInfo {
     const f = try std.fs.openFileAbsolute("/proc/cpuinfo", .{});
     defer f.close();
     const r = f.reader();
@@ -76,7 +76,7 @@ fn getLinux(allocator: *std.mem.Allocator) !CpuInfo {
     };
 }
 
-fn getWindows(allocator: *std.mem.Allocator) !CpuInfo {
+fn getWindows(allocator: std.mem.Allocator) !CpuInfo {
     if (!builtin.link_libc) {
         // Nicer error than the cimport error they'll get otherwise
         @compileError("On Windows targets, cpuinfo requires libc to be linked");
@@ -133,7 +133,7 @@ const RegGetValueFlags = struct {
     }
 };
 
-fn regGetValueStr(allocator: *std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) ![]const u8 {
+fn regGetValueStr(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) ![]const u8 {
     const flags_dword = flags.dword();
 
     const key16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, key);
@@ -169,7 +169,7 @@ fn regGetValueStr(allocator: *std.mem.Allocator, hkey: usize, key: [:0]const u8,
     return std.unicode.utf16leToUtf8Alloc(allocator, buf[0 .. buf_len / 2 - 1]);
 }
 
-fn regGetValueInt(allocator: *std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) !u64 {
+fn regGetValueInt(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) !u64 {
     const flags_dword = flags.dword();
 
     const key16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, key);
