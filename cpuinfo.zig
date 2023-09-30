@@ -19,7 +19,8 @@ const CpuInfo = struct {
         _ = options;
         try writer.print("{s} ({} threads; ", .{ self.name, self.count });
         if (self.max_mhz >= 1000) {
-            try writer.print("{d}GHz)", .{@intToFloat(f64, self.max_mhz) * 0.001});
+            const mhz_float: f64 = @floatFromInt(self.max_mhz);
+            try writer.print("{d}GHz)", .{mhz_float * 0.001});
         } else {
             try writer.print("{d}MHz)", .{self.max_mhz});
         }
@@ -126,7 +127,7 @@ const RegGetValueFlags = struct {
     fn dword(flags: RegGetValueFlags) win32.DWORD {
         var flags_dword: win32.DWORD = 0;
         if (flags.type) |t| {
-            flags_dword |= @enumToInt(t);
+            flags_dword |= @intFromEnum(t);
         }
         if (flags.noexpand) flags_dword |= win32.RRF_NOEXPAND;
         return flags_dword;

@@ -1,8 +1,7 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    b.addModule(.{
-        .name = "cpuinfo",
+    _ = b.addModule("cpuinfo", .{
         .source_file = .{ .path = "cpuinfo.zig" },
     });
 
