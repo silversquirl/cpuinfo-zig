@@ -1,0 +1,10 @@
+.{
+    .name = "cpuinfo",
+    .version = "0.1.0",
+    .paths = .{
+        "README.md",
+        "build.zig",
+        "build.zig.zon",
+        "cpuinfo.zig",
+    },
+}
