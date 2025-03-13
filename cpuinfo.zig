@@ -137,9 +137,9 @@ const RegGetValueFlags = struct {
 fn regGetValueStr(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) ![]const u8 {
     const flags_dword = flags.dword();
 
-    const key16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, key);
+    const key16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, key);
     defer allocator.free(key16);
-    const name16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, name);
+    const name16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, name);
     defer allocator.free(name16);
 
     var value_type: win32.DWORD = undefined;
@@ -167,15 +167,15 @@ fn regGetValueStr(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, 
         else => return error.WrongType,
     }
 
-    return std.unicode.utf16leToUtf8Alloc(allocator, buf[0 .. buf_len / 2 - 1]);
+    return std.unicode.utf16LeToUtf8Alloc(allocator, buf[0 .. buf_len / 2 - 1]);
 }
 
 fn regGetValueInt(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) !u64 {
     const flags_dword = flags.dword();
 
-    const key16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, key);
+    const key16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, key);
     defer allocator.free(key16);
-    const name16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, name);
+    const name16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, name);
     defer allocator.free(name16);
 
     var value_type: win32.DWORD = undefined;

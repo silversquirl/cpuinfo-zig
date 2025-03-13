@@ -1,6 +1,8 @@
 .{
-    .name = "cpuinfo",
+    .name = .cpuinfo,
     .version = "0.1.0",
+    .fingerprint = 0xf7ef0533bfd621ee,
+    .minimum_zig_version = "0.14.0",
     .paths = .{
         "README.md",
         "build.zig",
