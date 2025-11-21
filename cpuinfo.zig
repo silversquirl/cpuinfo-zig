@@ -14,9 +14,7 @@ const CpuInfo = struct {
         allocator.free(self.name);
     }
 
-    pub fn format(self: CpuInfo, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = fmt;
-        _ = options;
+    pub fn format(self: CpuInfo, writer: *std.Io.Writer) !void {
         try writer.print("{s} ({} threads; ", .{ self.name, self.count });
         if (self.max_mhz >= 1000) {
             const mhz_float: f64 = @floatFromInt(self.max_mhz);
@@ -36,23 +34,24 @@ pub const get = switch (builtin.os.tag) {
 fn getLinux(allocator: std.mem.Allocator) !CpuInfo {
     const f = try std.fs.openFileAbsolute("/proc/cpuinfo", .{});
     defer f.close();
-    const r = f.reader();
 
-    var key_buf: [64]u8 = undefined;
-    const name = while (r.readUntilDelimiter(&key_buf, ':')) |key_full| {
-        const key = std.mem.trim(u8, key_full, " \t\n");
-        if (' ' != try r.readByte()) { // Skip leading space
+    var read_buf: [64]u8 = undefined;
+    var r = f.reader(&read_buf);
+
+    const name = while (r.interface.takeDelimiter(':')) |key_full| {
+        const key = std.mem.trim(u8, key_full orelse return error.InvalidFormat, " \t\n");
+        if (' ' != try r.interface.takeByte()) { // Skip leading space
             return error.InvalidFormat;
         }
 
         if (std.mem.eql(u8, key, "model name")) {
-            const value = try r.readUntilDelimiterOrEofAlloc(allocator, '\n', 4096);
-            break value orelse return error.InvalidFormat;
+            const value = try r.interface.takeDelimiter('\n') orelse return error.InvalidFormat;
+            break try allocator.dupe(u8, value);
         } else {
-            try r.skipUntilDelimiterOrEof('\n');
+            _ = try r.interface.discardDelimiterLimit('\n', .unlimited);
         }
     } else |err| switch (err) {
-        error.EndOfStream, error.StreamTooLong => return error.InvalidFormat,
+        error.ReadFailed, error.StreamTooLong => return error.InvalidFormat,
         else => |e| return e,
     };
     errdefer allocator.free(name);
@@ -137,9 +136,9 @@ const RegGetValueFlags = struct {
 fn regGetValueStr(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) ![]const u8 {
     const flags_dword = flags.dword();
 
-    const key16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, key);
+    const key16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, key);
     defer allocator.free(key16);
-    const name16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, name);
+    const name16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, name);
     defer allocator.free(name16);
 
     var value_type: win32.DWORD = undefined;
@@ -166,16 +165,15 @@ fn regGetValueStr(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, 
         win32.REG_EXPAND_SZ, win32.REG_MULTI_SZ, win32.REG_SZ => {},
         else => return error.WrongType,
     }
-
-    return std.unicode.utf16leToUtf8Alloc(allocator, buf[0 .. buf_len / 2 - 1]);
+    return std.unicode.utf16LeToUtf8Alloc(allocator, buf[0 .. buf_len / 2 - 1]);
 }
 
 fn regGetValueInt(allocator: std.mem.Allocator, hkey: usize, key: [:0]const u8, name: [:0]const u8, flags: RegGetValueFlags) !u64 {
     const flags_dword = flags.dword();
 
-    const key16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, key);
+    const key16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, key);
     defer allocator.free(key16);
-    const name16 = try std.unicode.utf8ToUtf16LeWithNull(allocator, name);
+    const name16 = try std.unicode.utf8ToUtf16LeAllocZ(allocator, name);
     defer allocator.free(name16);
 
     var value_type: win32.DWORD = undefined;
@@ -220,12 +218,12 @@ const HKEY_DYN_DATA = 0x80000006;
 const HKEY_CURRENT_USER_LOCAL_SETTINGS = 0x80000007;
 
 test {
-    const info = try get(std.testing.allocator);
+    const info: CpuInfo = try get(std.testing.allocator);
     defer info.deinit(std.testing.allocator);
     try std.testing.expect(info.name.len > 0);
     try std.testing.expect(info.count > 0);
     try std.testing.expect(info.max_mhz > 0);
 
     var buf: [512]u8 = undefined;
-    _ = try std.fmt.bufPrint(&buf, "{}", .{info});
+    _ = try std.fmt.bufPrint(&buf, "{f}", .{info});
 }

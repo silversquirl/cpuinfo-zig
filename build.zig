@@ -5,10 +5,14 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("cpuinfo.zig"),
     });
 
+    const target = b.standardTargetOptions(.{});
     const test_step = b.addTest(.{
-        .root_source_file = b.path("cpuinfo.zig"),
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("cpuinfo.zig"),
+            .target = target,
+        }),
     });
-    if (@import("builtin").os.tag == .windows) {
+    if (target.result.os.tag == .windows) {
         test_step.linkLibC();
     }
     b.step("test", "Run library tests").dependOn(&b.addRunArtifact(test_step).step);
