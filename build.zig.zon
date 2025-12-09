@@ -1,6 +1,6 @@
 .{
     .name = .cpuinfo,
-    .fingerprint = 0xf7ef0533f1300828, // Changing this has security and trust implications.
+    .fingerprint = 0xf7ef0533f1300828,
     .minimum_zig_version = "0.15.2",
     .version = "0.2.0",
 

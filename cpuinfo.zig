@@ -35,11 +35,11 @@ fn getLinux(allocator: std.mem.Allocator) !CpuInfo {
     const f = try std.fs.openFileAbsolute("/proc/cpuinfo", .{});
     defer f.close();
 
-    var read_buf: [64]u8 = undefined;
+    var read_buf: [1024]u8 = undefined;
     var r = f.reader(&read_buf);
 
-    const name = while (r.interface.takeDelimiter(':')) |key_full| {
-        const key = std.mem.trim(u8, key_full orelse return error.InvalidFormat, " \t\n");
+    const name = while (try r.interface.takeDelimiter(':')) |key_full| {
+        const key = std.mem.trim(u8, key_full, " \t\n");
         if (' ' != try r.interface.takeByte()) { // Skip leading space
             return error.InvalidFormat;
         }
@@ -50,10 +50,8 @@ fn getLinux(allocator: std.mem.Allocator) !CpuInfo {
         } else {
             _ = try r.interface.discardDelimiterLimit('\n', .unlimited);
         }
-    } else |err| switch (err) {
-        error.ReadFailed, error.StreamTooLong => return error.InvalidFormat,
-        else => |e| return e,
-    };
+    } else return error.InvalidFormat; // "model name" key not found
+
     errdefer allocator.free(name);
 
     const max_khz_str = try std.fs.cwd().readFileAlloc(
@@ -69,7 +67,7 @@ fn getLinux(allocator: std.mem.Allocator) !CpuInfo {
     ) catch return error.InvalidFormat;
     const max_mhz = (max_khz + 500) / 1000; // Rounded division to convert kHz to MHz
 
-    return CpuInfo{
+    return .{
         .name = name,
         .count = try std.Thread.getCpuCount(),
         .max_mhz = max_mhz,
@@ -102,7 +100,7 @@ fn getWindows(allocator: std.mem.Allocator) !CpuInfo {
         .{ .type = .dword },
     );
 
-    return CpuInfo{
+    return .{
         .name = name,
         .count = try std.Thread.getCpuCount(),
         .max_mhz = max_mhz,
